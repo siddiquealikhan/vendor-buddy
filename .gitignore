@@ -1,0 +1,40 @@
+# Node.js and npm
+node_modules/
+frontend/node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vite and React build outputs
+dist/
+.vite/
+build/
+
+# Rust (if backend is Rust-based)
+backend/target/
+Cargo.lock  # Optional: ignore if you want to commit it for reproducible builds
+
+# Docker
+*.dockerignore  # If not needed in repo
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs and temp files
+*.log
+tmp/
+temp/
+
+# Miscellaneous
+Thumbs.db
+desktop.ini

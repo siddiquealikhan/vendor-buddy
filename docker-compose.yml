@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: vendor-buddy-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: vendorbuddy
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./backend/src/main/resources/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - vendor-buddy-network
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vendor-buddy-backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://admin:password123@mongodb:27017/vendorbuddy?authSource=admin
+      JWT_SECRET: your-super-secret-jwt-key-for-vendor-buddy-2024-production
+      JWT_EXPIRATION: 86400000
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+    networks:
+      - vendor-buddy-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vendor-buddy-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
+      VITE_APP_NAME: Vendor-Buddy
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - vendor-buddy-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  vendor-buddy-network:
+    driver: bridge

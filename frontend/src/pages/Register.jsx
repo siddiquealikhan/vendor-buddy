@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { useAuth } from '../contexts/AuthContext'
 import { Eye, EyeOff, Mail, Lock, User, Phone, MapPin } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
+import axios from 'axios'
 
 const Register = () => {
   const { register: registerUser } = useAuth()
@@ -11,6 +12,8 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedRole, setSelectedRole] = useState('VENDOR')
+  const [location, setLocation] = useState({ lat: '', lng: '', address: '', pincode: '' })
+  const [locating, setLocating] = useState(false)
 
   const {
     register,
@@ -21,16 +24,68 @@ const Register = () => {
 
   const password = watch('password')
 
+  const handleDetectLocation = async () => {
+    setLocating(true)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        // Reverse geocode to get address (using OpenStreetMap Nominatim)
+        try {
+          const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+          setLocation({
+            lat,
+            lng,
+            address: res.data.display_name || '',
+            pincode: ''
+          })
+        } catch {
+          setLocation({ lat, lng, address: '', pincode: '' })
+        }
+        setLocating(false)
+      }, () => setLocating(false))
+    } else {
+      setLocating(false)
+    }
+  }
+
+  const handlePincodeLookup = async () => {
+    if (!location.pincode) return
+    setLocating(true)
+    try {
+      // Use OpenStreetMap Nominatim for pincode geocoding
+      const res = await axios.get(`https://nominatim.openstreetmap.org/search?postalcode=${location.pincode}&country=India&format=json&limit=1`)
+      if (res.data && res.data.length > 0) {
+        setLocation({
+          ...location,
+          lat: res.data[0].lat,
+          lng: res.data[0].lon,
+          address: res.data[0].display_name || ''
+        })
+      }
+    } finally {
+      setLocating(false)
+    }
+  }
+
   const onSubmit = async (data) => {
     setLoading(true)
     try {
       const userData = {
         ...data,
         role: selectedRole,
+        address: location.address,
+        pincode: location.pincode,
+        latitude: location.lat,
+        longitude: location.lng
       }
       const result = await registerUser(userData)
       if (result.success) {
-        navigate('/dashboard')
+        if (selectedRole === 'SUPPLIER') {
+          navigate('/dashboard') // Redirect new suppliers to dashboard
+        } else {
+          navigate('/') // Redirect vendors to home page
+        }
       }
     } catch (error) {
       console.error('Registration error:', error)
@@ -60,7 +115,7 @@ const Register = () => {
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
           <div className="space-y-4">
             {/* Role Selection */}
             <div>
@@ -252,6 +307,38 @@ const Register = () => {
               </div>
               {errors.confirmPassword && (
                 <p className="mt-1 text-sm text-error-600">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            {/* Address and Pincode */}
+            <div className="flex flex-col gap-2">
+              <label className="font-medium">Address</label>
+              <input
+                type="text"
+                placeholder="Enter address"
+                value={location.address}
+                onChange={e => setLocation({ ...location, address: e.target.value })}
+                className="input"
+                required
+              />
+              <label className="font-medium">Pincode</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter pincode"
+                  value={location.pincode}
+                  onChange={e => setLocation({ ...location, pincode: e.target.value })}
+                  className="input"
+                />
+                <button type="button" className="btn btn-outline" onClick={handlePincodeLookup} disabled={locating}>
+                  Lookup
+                </button>
+              </div>
+              <button type="button" className="btn btn-primary mt-2" onClick={handleDetectLocation} disabled={locating}>
+                Detect Location Automatically
+              </button>
+              {location.lat && location.lng && (
+                <div className="text-xs text-gray-500 mt-1">Lat: {location.lat}, Lng: {location.lng}</div>
               )}
             </div>
           </div>

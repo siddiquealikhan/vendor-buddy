@@ -9,15 +9,19 @@ const Products = () => {
   const [category, setCategory] = useState('')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
+  const [locationKms, setLocationKms] = useState('')
+  const [sortBy, setSortBy] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
 
   const { data: products, isLoading, error } = useQuery(
-    ['products', searchTerm, category, minPrice, maxPrice, currentPage],
+    ['products', searchTerm, category, minPrice, maxPrice, locationKms, sortBy, currentPage],
     () => productsAPI.getAll({
       search: searchTerm,
       category,
       minPrice: minPrice ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      locationKms: locationKms ? parseFloat(locationKms) : undefined,
+      sortBy: sortBy || undefined,
       page: currentPage,
       size: 12
     })
@@ -44,6 +48,8 @@ const Products = () => {
     setCategory('')
     setMinPrice('')
     setMaxPrice('')
+    setLocationKms('')
+    setSortBy('')
     setCurrentPage(0)
   }
 
@@ -82,21 +88,9 @@ const Products = () => {
       {/* Search and Filters */}
       <div className="card">
         <div className="card-body">
-          <form onSubmit={handleSearch} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input pl-10"
-                />
-              </div>
-
-              {/* Category Filter */}
+          <form onSubmit={handleSearch} className="w-full flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Filters (left) */}
+            <div className="flex flex-col md:flex-row gap-2 md:gap-4 items-start md:items-center">
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -107,8 +101,6 @@ const Products = () => {
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
-
-              {/* Price Range */}
               <input
                 type="number"
                 placeholder="Min Price"
@@ -116,7 +108,6 @@ const Products = () => {
                 onChange={(e) => setMinPrice(e.target.value)}
                 className="input"
               />
-
               <input
                 type="number"
                 placeholder="Max Price"
@@ -124,9 +115,41 @@ const Products = () => {
                 onChange={(e) => setMaxPrice(e.target.value)}
                 className="input"
               />
+              <input
+                type="number"
+                placeholder="Location (kms)"
+                value={locationKms}
+                onChange={(e) => setLocationKms(e.target.value)}
+                className="input"
+              />
             </div>
-
-            <div className="flex items-center justify-between">
+            {/* Search (center) */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="relative w-full max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="input pl-10 w-full"
+                />
+              </div>
+            </div>
+            {/* Sorting (right) */}
+            <div className="flex flex-col md:flex-row gap-2 md:gap-4 items-end md:items-center">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="input"
+              >
+                <option value="">Sort By</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="name_asc">Name: A-Z</option>
+                <option value="name_desc">Name: Z-A</option>
+                <option value="distance_asc">Distance: Nearest</option>
+              </select>
               <button type="submit" className="btn btn-primary">
                 <Search className="h-4 w-4 mr-2" />
                 Search
@@ -144,55 +167,64 @@ const Products = () => {
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {products?.content?.map((product) => (
-          <div key={product.id} className="card hover:shadow-medium transition-shadow">
-            <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-t-lg">
-              {product.imageUrl ? (
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="w-full h-48 object-cover rounded-t-lg"
-                />
-              ) : (
-                <div className="w-full h-48 bg-gray-200 rounded-t-lg flex items-center justify-center">
-                  <span className="text-gray-400">No Image</span>
+          <div key={product.id} className="card hover:shadow-medium transition-shadow min-h-[340px] flex flex-col justify-between text-base">
+            <div>
+              <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-t-lg">
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="w-full h-64 object-cover rounded-t-lg"
+                  />
+                ) : (
+                  <div className="w-full h-64 bg-gray-200 rounded-t-lg flex items-center justify-center">
+                    <span className="text-gray-400">No Image</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-6">
+                <h3 className="font-semibold text-gray-900 mb-2 text-xl">{product.name}</h3>
+                <p className="text-sm text-gray-500 mb-1">{product.category}</p>
+                {product.description && (
+                  <p className="text-base text-gray-700 mb-3 line-clamp-3">{product.description}</p>
+                )}
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {product.deliveryDays && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full">Delivery: {product.deliveryDays} day{product.deliveryDays > 1 ? 's' : ''}</span>
+                  )}
+                  {product.distanceKm && (
+                    <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">{product.distanceKm.toFixed(1)} km away</span>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
-              <p className="text-sm text-gray-500 mb-2">{product.category}</p>
-              
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-lg font-bold text-primary-600">
-                  ₹{product.unitPrice}
-                </span>
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                  <span className="text-sm text-gray-600 ml-1">
-                    {product.rating || 0}
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-2xl font-bold text-primary-600">
+                    ���{product.unitPrice}
                   </span>
+                  <div className="flex items-center">
+                    <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                    <span className="text-base text-gray-600 ml-1">
+                      {product.rating || 0}
+                    </span>
+                  </div>
+                </div>
+                {product.supplierName && (
+                  <div className="mb-2">
+                    <span className="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
+                      By {product.supplierName}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                  <span>Stock: {product.stock}</span>
+                  <span>{product.unitType}</span>
                 </div>
               </div>
-
-              {product.supplierName && (
-                <div className="mb-2">
-                  <span className="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
-                    By {product.supplierName}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                <span>Stock: {product.stock}</span>
-                <span>{product.unitType}</span>
-              </div>
-
-              <button className="w-full btn btn-primary">
-                View Details
-              </button>
             </div>
+            <button className="w-full btn btn-primary rounded-b-lg text-lg py-3">
+              View Details
+            </button>
           </div>
         ))}
       </div>

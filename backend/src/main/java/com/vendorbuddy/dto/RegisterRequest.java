@@ -22,7 +22,11 @@ public class RegisterRequest {
     
     private User.Location location;
     private String phoneNumber;
-    
+    private String address;
+    private String pincode;
+    private Double latitude;
+    private Double longitude;
+
     public RegisterRequest() {}
     
     public RegisterRequest(String name, String email, String password, User.UserRole role) {
@@ -50,4 +54,16 @@ public class RegisterRequest {
     
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+
+    public String getPincode() { return pincode; }
+    public void setPincode(String pincode) { this.pincode = pincode; }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 }

@@ -61,16 +61,25 @@ public class UserService implements UserDetailsService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
-        user.setLocation(request.getLocation());
         user.setPhoneNumber(request.getPhoneNumber());
+        // Set location info
+        if (request.getLatitude() != null && request.getLongitude() != null) {
+            User.Location location = new User.Location();
+            location.setLatitude(request.getLatitude());
+            location.setLongitude(request.getLongitude());
+            location.setAddress(request.getAddress());
+            location.setPincode(request.getPincode());
+            user.setLocation(location);
+        }
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-
-        User savedUser = userRepository.save(user);
-
-        String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getRole().name());
-
-        return new AuthResponse(token, savedUser, "User registered successfully");
+        if (request.getPincode() != null) {
+            user.getLocation().setAddress(request.getAddress());
+            // Optionally, you can add a setPincode method to User.Location or User
+        }
+        userRepository.save(user);
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        return new AuthResponse(token, user, "User registered successfully");
     }
 
     public AuthResponse login(AuthRequest request) {

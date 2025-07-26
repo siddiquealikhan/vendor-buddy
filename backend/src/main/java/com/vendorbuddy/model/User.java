@@ -41,13 +41,15 @@ public class User {
         private double latitude;
         private double longitude;
         private String address;
-        
+        private String pincode;
+
         public Location() {}
         
-        public Location(double latitude, double longitude, String address) {
+        public Location(double latitude, double longitude, String address, String pincode) {
             this.latitude = latitude;
             this.longitude = longitude;
             this.address = address;
+            this.pincode = pincode;
         }
         
         // Getters and Setters
@@ -59,6 +61,9 @@ public class User {
         
         public String getAddress() { return address; }
         public void setAddress(String address) { this.address = address; }
+
+        public String getPincode() { return pincode; }
+        public void setPincode(String pincode) { this.pincode = pincode; }
     }
     
     // Constructors

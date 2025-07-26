@@ -36,13 +36,16 @@ public class ProductController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice) {
-        
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Double locationKms,
+            @RequestParam(required = false) Double userLat,
+            @RequestParam(required = false) Double userLng) {
+
         try {
             Page<Product> products;
             
-            if (search != null || category != null || minPrice != null || maxPrice != null) {
-                products = productService.searchProducts(search, minPrice, maxPrice, category, page, size);
+            if (search != null || category != null || minPrice != null || maxPrice != null || locationKms != null || (userLat != null && userLng != null)) {
+                products = productService.searchProducts(search, minPrice, maxPrice, category, locationKms, userLat, userLng, page, size, sortBy, sortDir);
             } else {
                 products = productService.getAllProducts(page, size, sortBy, sortDir);
             }
@@ -79,14 +82,17 @@ public class ProductController {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
             User user = userService.getCurrentUser(email);
-            
             if (user.getRole() != User.UserRole.SUPPLIER) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Only suppliers can create products");
                 return ResponseEntity.badRequest().body(error);
             }
-            
             product.setSupplierId(user.getId());
+            // Set supplier location from user profile
+            if (user.getLocation() != null) {
+                product.setSupplierLat(user.getLocation().getLatitude());
+                product.setSupplierLng(user.getLocation().getLongitude());
+            }
             Product createdProduct = productService.createProduct(product);
             return ResponseEntity.ok(createdProduct);
         } catch (Exception e) {

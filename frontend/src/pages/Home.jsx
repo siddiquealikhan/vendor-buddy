@@ -65,14 +65,31 @@ const Home = ({ cart, setCart }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notification, setNotification] = useState(null)
+  const [userLocation, setUserLocation] = useState({ lat: null, lng: null })
   const navigate = useNavigate()
+
+  // Get user's location when component mounts
+  useEffect(() => {
+    if (user && user.location) {
+      setUserLocation({
+        lat: user.location.latitude,
+        lng: user.location.longitude
+      })
+    }
+  }, [user])
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch('http://localhost:8080/api/products?page=0&size=100')
+        // Build API URL with location parameters if available
+        let apiUrl = 'http://localhost:8080/api/products?page=0&size=100'
+        if (userLocation.lat && userLocation.lng) {
+          apiUrl += `&userLat=${userLocation.lat}&userLng=${userLocation.lng}`
+        }
+
+        const res = await fetch(apiUrl)
         if (!res.ok) throw new Error('Failed to fetch products')
         const data = await res.json()
         // Defensive: ensure products is always an array
@@ -93,7 +110,7 @@ const Home = ({ cart, setCart }) => {
       }
     }
     fetchProducts()
-  }, [])
+  }, [userLocation])
 
   useEffect(() => {
     if (searchQuery === '') {
@@ -106,6 +123,55 @@ const Home = ({ cart, setCart }) => {
       )
     }
   }, [searchQuery, products])
+
+  // Haversine formula to calculate distance between two lat/lng points in km
+  function calculateDistanceKm(lat1, lng1, lat2, lng2) {
+    if (
+      lat1 == null || lng1 == null ||
+      lat2 == null || lng2 == null
+    ) return null;
+    const toRad = (value) => (value * Math.PI) / 180;
+    const R = 6371; // Earth radius in km
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Estimate delivery days based on distance (e.g., 1 day per 300km, min 1 day)
+  function estimateDeliveryDays(distanceKm) {
+    if (!distanceKm) return 1;
+    return Math.max(1, Math.ceil(distanceKm / 300));
+  }
+
+  useEffect(() => {
+    if (!loading && products.length > 0 && userLocation.lat && userLocation.lng) {
+      setFilteredProducts(
+        products.map(product => {
+          let distanceKm = null;
+          if (product.supplierLat && product.supplierLng) {
+            distanceKm = calculateDistanceKm(
+              userLocation.lat,
+              userLocation.lng,
+              product.supplierLat,
+              product.supplierLng
+            );
+          }
+          return {
+            ...product,
+            distanceKm,
+            estimatedDeliveryDays: estimateDeliveryDays(distanceKm)
+          };
+        })
+      );
+    } else {
+      setFilteredProducts(products);
+    }
+  }, [products, userLocation, loading])
 
   const showNotification = (message) => {
     setNotification(message)
@@ -230,29 +296,71 @@ const Home = ({ cart, setCart }) => {
           ) : error ? (
             <div className="text-center text-red-500">{error}</div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            <div className="!grid !grid-cols-1 md:!grid-cols-2 xl:!grid-cols-2 !gap-8 !w-full">
               {filteredProducts.map(product => (
-                <div key={product.id} className="card p-4 flex flex-col">
-                  <img
-                    src={product.imageUrl || product.image}
-                    alt={product.name}
-                    className="w-full h-40 object-cover rounded-md mb-4"
-                  />
-                  <div className="flex-1 flex flex-col">
-                    <div className="font-bold text-lg mb-1">{product.name}</div>
-                    <div className="text-gray-500 text-sm mb-2">
-                      by {product.supplierId || "Vendor-Buddy"}
+                <div key={product.id} className="!w-full card hover:shadow-medium transition-shadow min-h-[400px] flex flex-col justify-between text-base !max-w-none">
+                  <div>
+                    <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-t-lg">
+                      {product.imageUrl || product.image ? (
+                        <img
+                          src={product.imageUrl || product.image}
+                          alt={product.name}
+                          className="w-full h-72 object-cover rounded-t-lg"
+                        />
+                      ) : (
+                        <div className="w-full h-72 bg-gray-200 rounded-t-lg flex items-center justify-center">
+                          <span className="text-gray-400 text-xl">No Image</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="font-bold text-primary-600 text-lg">₹{product.unitPrice || product.price}</span>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => addToCart(product)}
-                      >
-                        Add to Cart
-                      </button>
+                    <div className="p-8">
+                      <h3 className="font-semibold text-gray-900 mb-3 text-2xl">{product.name}</h3>
+                      <p className="text-base text-gray-500 mb-2">{product.category}</p>
+                      {product.description && (
+                        <p className="text-lg text-gray-700 mb-4 line-clamp-3">{product.description}</p>
+                      )}
+                      <div className="flex flex-wrap gap-4 mb-4">
+                        {product.estimatedDeliveryDays && product.distanceKm ? (
+                          <>
+                            <span className="text-sm bg-blue-100 text-blue-700 px-4 py-2 rounded-full">
+                              Delivery: {product.estimatedDeliveryDays} day{product.estimatedDeliveryDays > 1 ? 's' : ''}
+                            </span>
+                            <span className="text-sm bg-green-100 text-green-700 px-4 py-2 rounded-full">
+                              {product.distanceKm.toFixed(1)} km away
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full">
+                            Location data missing for distance/delivery
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-3xl font-bold text-primary-600">
+                          ₹{product.unitPrice || product.price}
+                        </span>
+                        <div className="flex items-center">
+                          <span className="text-lg text-gray-600 ml-1">
+                            ⭐ {product.rating || 0}
+                          </span>
+                        </div>
+                      </div>
+                      {product.supplierName && (
+                        <div className="mb-3">
+                          <span className="text-sm font-medium bg-blue-50 text-blue-700 px-3 py-2 rounded-full">
+                            By {product.supplierName}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-base text-gray-500 mb-6">
+                        <span>Stock: {product.stock}</span>
+                        <span>{product.unitType}</span>
+                      </div>
                     </div>
                   </div>
+                  <button className="!w-full btn btn-primary rounded-b-lg text-xl py-4 font-semibold" onClick={() => addToCart(product)}>
+                    Add to Cart
+                  </button>
                 </div>
               ))}
             </div>

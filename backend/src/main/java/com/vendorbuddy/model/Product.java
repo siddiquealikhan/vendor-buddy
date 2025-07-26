@@ -3,6 +3,7 @@ package com.vendorbuddy.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.index.TextIndexed;
+import org.springframework.data.annotation.Transient;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -39,12 +40,18 @@ public class Product {
     
     private String imageUrl;
     private String description;
+    private Double supplierLat;
+    private Double supplierLng;
+    private Integer deliveryDays;
     private String supplierId;
     private Double rating;
     private Integer reviewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     
+    @Transient
+    private Double distanceKm;
+
     // Constructors
     public Product() {
         this.createdAt = LocalDateTime.now();
@@ -93,6 +100,15 @@ public class Product {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     
+    public Double getSupplierLat() { return supplierLat; }
+    public void setSupplierLat(Double supplierLat) { this.supplierLat = supplierLat; }
+
+    public Double getSupplierLng() { return supplierLng; }
+    public void setSupplierLng(Double supplierLng) { this.supplierLng = supplierLng; }
+
+    public Integer getDeliveryDays() { return deliveryDays; }
+    public void setDeliveryDays(Integer deliveryDays) { this.deliveryDays = deliveryDays; }
+
     public String getSupplierId() { return supplierId; }
     public void setSupplierId(String supplierId) { this.supplierId = supplierId; }
     
@@ -107,4 +123,7 @@ public class Product {
     
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public Double getDistanceKm() { return distanceKm; }
+    public void setDistanceKm(Double distanceKm) { this.distanceKm = distanceKm; }
 }

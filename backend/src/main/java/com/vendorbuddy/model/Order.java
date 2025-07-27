@@ -38,19 +38,23 @@ public class Order {
     private String notes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
+
+    private String productName;
+    private Double price; // unit price
+    private String paymentMethod;
+
     public enum OrderStatus {
         PENDING, ACCEPTED, REJECTED, IN_TRANSIT, DELIVERED, CANCELLED
     }
-    
+
     // Constructors
     public Order() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         this.status = OrderStatus.PENDING;
     }
-    
-    public Order(String productId, String vendorId, String supplierId, 
+
+    public Order(String productId, String vendorId, String supplierId,
                  Integer quantity, Double totalAmount) {
         this();
         this.productId = productId;
@@ -59,14 +63,14 @@ public class Order {
         this.quantity = quantity;
         this.totalAmount = totalAmount;
     }
-    
+
     // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    
+
     public String getProductId() { return productId; }
     public void setProductId(String productId) { this.productId = productId; }
-    
+
     public String getVendorId() { return vendorId; }
     public void setVendorId(String vendorId) { this.vendorId = vendorId; }
     
@@ -103,4 +107,13 @@ public class Order {
     
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
+
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 }

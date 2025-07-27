@@ -91,23 +91,13 @@ const Orders = ({ cart = [] }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Add Header at the top */}
+    <div className="min-h-screen bg-white flex flex-col">
       <Header cart={cart} />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Back button */}
-        <button
-          className="flex items-center px-4 py-2 mb-6 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back
-        </button>
+      <div className="max-w-3xl mx-auto w-full px-4 py-8 flex-1">
+        <button className="mb-6 btn btn-outline" onClick={() => navigate('/')}> &larr; Back</button>
+        <h2 className="text-2xl font-bold mb-6">Order History</h2>
 
         <div className="space-y-6">
-          <h1 className="text-2xl font-bold text-gray-900">Order History</h1>
-          <p className="text-gray-600">View your order history and track current orders.</p>
-
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>

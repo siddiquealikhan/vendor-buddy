@@ -51,8 +51,8 @@ const Header = ({ cart = [] }) => {
   return (
     <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-primary-600">Vendor-Buddy</h1>
+        <div className="flex-1 flex items-center">
+          <h1 className="text-2xl md:text-3xl font-bold text-primary-600 leading-tight">Vendor-Buddy</h1>
         </div>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
           {/* Only show user menu if logged in */}
@@ -68,9 +68,11 @@ const Header = ({ cart = [] }) => {
               </button>
 
               {/* Notifications */}
-              <button className="p-2 text-gray-400 hover:text-gray-500">
-                <Bell className="h-5 w-5" />
-              </button>
+              {user?.role === 'SUPPLIER' && (
+                <button className="p-2 text-gray-400 hover:text-gray-500">
+                  <Bell className="h-5 w-5" />
+                </button>
+              )}
 
               {/* Cart */}
               <button
@@ -101,15 +103,17 @@ const Header = ({ cart = [] }) => {
                 {showDropdown && (
                   <div className="absolute right-0 mt-10 w-44 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                     <div className="py-1">
-                      <button
-                        onClick={() => {
-                          setShowDropdown(false);
-                          navigate('/dashboard');
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        My Dashboard
-                      </button>
+                      {user?.role === 'SUPPLIER' && (
+                        <button
+                          onClick={() => {
+                            setShowDropdown(false);
+                            navigate('/dashboard');
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          My Dashboard
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setShowDropdown(false);

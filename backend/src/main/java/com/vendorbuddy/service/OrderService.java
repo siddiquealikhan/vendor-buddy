@@ -51,14 +51,17 @@ public class OrderService {
     
     public Page<Order> getOrdersByUser(String userId, String userRole, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        
+        System.out.println("[OrderService] getOrdersByUser: userId=" + userId + ", userRole=" + userRole);
+        Page<Order> result;
         if ("VENDOR".equals(userRole)) {
-            return orderRepository.findByVendorId(userId, pageable);
+            result = orderRepository.findByVendorId(userId, pageable);
         } else if ("SUPPLIER".equals(userRole)) {
-            return orderRepository.findBySupplierId(userId, pageable);
+            result = orderRepository.findBySupplierId(userId, pageable);
         } else {
             throw new RuntimeException("Invalid user role");
         }
+        System.out.println("[OrderService] Orders found: " + result.getTotalElements());
+        return result;
     }
     
     public Page<Order> getOrdersByStatus(String userId, String userRole, Order.OrderStatus status, int page, int size) {

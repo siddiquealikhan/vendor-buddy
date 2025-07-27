@@ -144,11 +144,10 @@ const Products = () => {
                 className="input"
               >
                 <option value="">Sort By</option>
+                <option value="nearness">Sort by Nearness</option>
+                <option value="delivery">Sort by Delivery Date</option>
                 <option value="price_asc">Price: Low to High</option>
                 <option value="price_desc">Price: High to Low</option>
-                <option value="name_asc">Name: A-Z</option>
-                <option value="name_desc">Name: Z-A</option>
-                <option value="distance_asc">Distance: Nearest</option>
               </select>
               <button type="submit" className="btn btn-primary">
                 <Search className="h-4 w-4 mr-2" />

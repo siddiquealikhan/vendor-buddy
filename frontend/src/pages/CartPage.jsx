@@ -53,7 +53,7 @@ const CartPage = ({ cart, onRemove }) => {
             <button
               className="btn btn-primary w-full"
               disabled={cart.length === 0}
-              onClick={() => navigate('/payment')}
+              onClick={() => navigate('/enter-address', { state: { cart } })}
             >
               Continue to Payment
             </button>

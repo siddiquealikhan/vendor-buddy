@@ -81,6 +81,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user')
     setUser(null)
     toast.success('Logged out successfully')
+    window.location.href = '/'; // Redirect to main page on logout
   }
 
   const updateProfile = async (profileData) => {

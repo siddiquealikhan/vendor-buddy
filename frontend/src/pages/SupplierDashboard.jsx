@@ -18,7 +18,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
 const SupplierDashboard = () => {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [showAddProductDialog, setShowAddProductDialog] = useState(false)
@@ -55,14 +55,26 @@ const SupplierDashboard = () => {
   const productCount = products.length;
   const recentProducts = products.slice(0, 5);
 
-  const { data: orders, isLoading: ordersLoading } = useQuery(
-    ['orders', 'dashboard'],
-    () => ordersAPI.getAll({ page: 0, size: 5 }),
-    { enabled: !!user }
+  // Fetch all orders for this supplier
+  const { data: supplierOrdersData, isLoading: supplierOrdersLoading } = useQuery(
+    ['orders', 'supplier', user?.id],
+    () => ordersAPI.getAll({ supplierId: user?.id, page: 0, size: 100 }),
+    {
+      enabled: !!user?.id && user?.role === 'SUPPLIER',
+      onError: (error) => console.error('Error fetching supplier orders:', error),
+    }
   )
 
-  // Make sure this is defined before any JSX usage
-  const recentOrders = orders?.content || [];
+  // Defensive: handle array/object response
+  const supplierOrders = Array.isArray(supplierOrdersData?.data?.orders)
+    ? supplierOrdersData.data.orders
+    : supplierOrdersData?.data?.content || [];
+
+  // Calculate stats
+  const orderCount = supplierOrders.length;
+  const revenue = supplierOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+  const activeCustomers = new Set(supplierOrders.map(order => order.vendorId)).size;
+  const recentSupplierOrders = supplierOrders.slice(0, 5);
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery(
     ['analytics', 'dashboard'],
@@ -80,28 +92,28 @@ const SupplierDashboard = () => {
     },
     {
       name: 'Total Orders',
-      value: orders?.totalElements || 0,
+      value: orderCount,
       icon: Package,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
       name: 'Revenue',
-      value: `₹${analytics?.totalRevenue?.toLocaleString() || 0}`,
+      value: `₹${revenue.toLocaleString()}`,
       icon: DollarSign,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
     {
       name: 'Active Customers',
-      value: analytics?.activeCustomers || 0,
+      value: activeCustomers,
       icon: Users,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
     },
   ]
 
-  if (productsLoading || ordersLoading || analyticsLoading) {
+  if (productsLoading || supplierOrdersLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size="lg" />
@@ -206,8 +218,8 @@ const SupplierDashboard = () => {
       {/* Custom Header for Supplier - No Cart Icon */}
       <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
         <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-primary-600">Vendor-Buddy</h1>
+          <div className="flex-1 flex items-center">
+            <h1 className="text-2xl md:text-3xl font-bold text-primary-600 leading-tight">Vendor-Buddy</h1>
           </div>
           <div className="flex items-center gap-x-4 lg:gap-x-6">
             {/* Navigation items for supplier */}
@@ -232,7 +244,13 @@ const SupplierDashboard = () => {
               <Clock className="h-4 w-4" />
               Orders
             </button>
-
+            <button
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:text-red-800"
+              onClick={() => { logout(); navigate('/login'); }}
+            >
+              <X className="h-4 w-4" />
+              Logout
+            </button>
             {/* User information */}
             <div className="flex items-center gap-x-2">
               <span className="text-sm font-medium text-gray-900">
@@ -249,15 +267,8 @@ const SupplierDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Back button and Add Product button */}
-        <div className="flex justify-between items-center mb-6">
-          <button
-            className="flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-            onClick={() => navigate(-1)}
-          >
-            &larr; Back
-          </button>
-
+        {/* Add Product button */}
+        <div className="flex justify-end items-center mb-6">
           <button
             className="flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none"
             onClick={() => setShowAddProductDialog(true)}
@@ -302,9 +313,9 @@ const SupplierDashboard = () => {
                 <h3 className="text-lg font-semibold text-gray-900">Recent Orders</h3>
               </div>
               <div className="card-body">
-                {recentOrders.length > 0 ? (
+                {recentSupplierOrders.length > 0 ? (
                   <div className="space-y-4">
-                    {recentOrders.map((order) => (
+                    {recentSupplierOrders.map((order) => (
                       <div key={order.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <div className={`p-2 rounded-full ${
@@ -321,7 +332,12 @@ const SupplierDashboard = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">Order #{order.id.slice(-6)}</p>
+                            <p className="font-medium text-gray-900">
+                              Order #{order.id.slice(-6)} - {order.productName}
+                              <span className="ml-2 text-xs text-gray-500">Qty: {order.quantity}</span>
+                              <span className="ml-2 text-xs text-gray-500">Unit Price: ₹{order.price}</span>
+                              <span className="ml-2 text-xs text-gray-500">Vendor Address: {order.deliveryAddress}</span>
+                            </p>
                             <p className="text-sm text-gray-500">
                               {new Date(order.createdAt).toLocaleDateString()}
                             </p>

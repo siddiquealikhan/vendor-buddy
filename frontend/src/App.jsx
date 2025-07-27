@@ -20,6 +20,15 @@ import Orders from './pages/Orders'
 import Analytics from './pages/Analytics'
 import Profile from './pages/Profile'
 import CartPage from './pages/CartPage'
+import EnterAddress from './pages/EnterAddress'
+import DummyPayment from './pages/DummyPayment'
+import SupplierProducts from './pages/SupplierProducts';
+import SupplierAnalytics from './pages/SupplierAnalytics';
+import SupplierOrders from './pages/SupplierOrders';
+import ContactUs from './pages/ContactUs';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Help from './pages/Help';
+import Terms from './pages/Terms';
 
 // Context
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -74,20 +83,37 @@ function AppRoutes() {
 
       {/* Public home page route */}
       <Route path="/" element={<Home cart={cart} setCart={setCart} />} />
+      {/* New static info pages */}
+      <Route path="/contact" element={<ContactUs />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/help" element={<Help />} />
+      <Route path="/terms" element={<Terms />} />
 
       {/* Dashboard - Show different dashboard based on user role */}
       <Route path="/dashboard" element={
         !user ? <Navigate to="/login" /> :
-        user.role === 'SUPPLIER' ? <SupplierDashboard /> : <Dashboard cart={cart} />
+        user.role === 'SUPPLIER' ? <SupplierDashboard /> : <Navigate to="/orders" />
       } />
 
-      {/* Orders with its own header (no sidebar) */}
-      <Route path="/orders" element={user ? <Orders cart={cart} /> : <Navigate to="/login" />} />
+      {/* Supplier-specific routes */}
+      {user && user.role === 'SUPPLIER' && (
+        <>
+          <Route path="/products" element={<SupplierProducts />} />
+          <Route path="/analytics" element={<SupplierAnalytics />} />
+          <Route path="/orders" element={<SupplierOrders />} />
+        </>
+      )}
+      {/* Orders with its own header (no sidebar) for vendors */}
+      {user && user.role !== 'SUPPLIER' && (
+        <Route path="/orders" element={<Orders cart={cart} />} />
+      )}
 
       {/* Cart page with its own navigation */}
       <Route path="/cart" element={
         <CartPage cart={cart} onRemove={handleRemoveFromCart} isLoggedIn={!!user} />
       } />
+      <Route path="/enter-address" element={<EnterAddress cart={cart} />} />
+      <Route path="/payment" element={<DummyPayment />} />
 
       {/* Other protected routes inside Layout */}
       <Route

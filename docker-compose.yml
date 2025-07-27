@@ -14,7 +14,8 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./backend/src/main/resources/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ./vendorbuddy:/docker-seed:ro
+      - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
     networks:
       - vendor-buddy-network
 

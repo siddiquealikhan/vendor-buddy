@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Package, 
-  TrendingUp, 
-  Users, 
+  Users,
   Shield, 
   Smartphone, 
   Globe,
@@ -14,22 +13,19 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import Header from '../components/Header'
+import axios from 'axios'
 
 const Home = ({ cart, setCart }) => {
   const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredProducts, setFilteredProducts] = useState([])
+  const [sortBy, setSortBy] = useState('');
 
   const features = [
     {
       icon: Package,
       title: 'Smart Sourcing',
       description: 'Find the best raw materials from verified suppliers across India'
-    },
-    {
-      icon: TrendingUp,
-      title: 'Price Trends',
-      description: 'Track price fluctuations and make informed purchasing decisions'
     },
     {
       icon: Users,
@@ -66,6 +62,7 @@ const Home = ({ cart, setCart }) => {
   const [error, setError] = useState(null)
   const [notification, setNotification] = useState(null)
   const [userLocation, setUserLocation] = useState({ lat: null, lng: null })
+  const [supplierNames, setSupplierNames] = useState({});
   const navigate = useNavigate()
 
   // Get user's location when component mounts
@@ -116,13 +113,49 @@ const Home = ({ cart, setCart }) => {
     if (searchQuery === '') {
       setFilteredProducts(products)
     } else {
+      // When searching, preserve calculated distance/delivery fields
       setFilteredProducts(
-        products.filter(product =>
-          product.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        products
+          .filter(product =>
+            product.name.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+          .map(product => {
+            // If product already has distanceKm/estimatedDeliveryDays, keep them
+            if (product.distanceKm && product.estimatedDeliveryDays) return product;
+            // Otherwise, recalculate if possible
+            let distanceKm = null;
+            if (userLocation.lat && userLocation.lng && product.supplierLat && product.supplierLng) {
+              distanceKm = calculateDistanceKm(
+                userLocation.lat,
+                userLocation.lng,
+                product.supplierLat,
+                product.supplierLng
+              );
+            }
+            return {
+              ...product,
+              distanceKm,
+              estimatedDeliveryDays: estimateDeliveryDays(distanceKm)
+            };
+          })
       )
     }
-  }, [searchQuery, products])
+  }, [searchQuery, products, userLocation])
+
+  // Add sorting logic
+  useEffect(() => {
+    let sorted = [...filteredProducts];
+    if (sortBy === 'nearness') {
+      sorted.sort((a, b) => (a.distanceKm || Infinity) - (b.distanceKm || Infinity));
+    } else if (sortBy === 'delivery') {
+      sorted.sort((a, b) => (a.estimatedDeliveryDays || Infinity) - (b.estimatedDeliveryDays || Infinity));
+    } else if (sortBy === 'price_asc') {
+      sorted.sort((a, b) => (a.unitPrice || a.price || 0) - (b.unitPrice || b.price || 0));
+    } else if (sortBy === 'price_desc') {
+      sorted.sort((a, b) => (b.unitPrice || b.price || 0) - (a.unitPrice || a.price || 0));
+    }
+    setFilteredProducts(sorted);
+  }, [sortBy]);
 
   // Haversine formula to calculate distance between two lat/lng points in km
   function calculateDistanceKm(lat1, lng1, lat2, lng2) {
@@ -173,6 +206,29 @@ const Home = ({ cart, setCart }) => {
     }
   }, [products, userLocation, loading])
 
+  // Fetch supplier names for products
+  useEffect(() => {
+    const fetchSupplierNames = async () => {
+      const uniqueSupplierIds = Array.from(new Set(products.map(p => p.supplierId).filter(Boolean)));
+      if (uniqueSupplierIds.length === 0) return;
+      try {
+        const names = {};
+        await Promise.all(uniqueSupplierIds.map(async (id) => {
+          try {
+            const res = await axios.get(`/users/${id}`);
+            names[id] = res.data.name || res.data.email || id;
+          } catch {
+            names[id] = id;
+          }
+        }));
+        setSupplierNames(names);
+      } catch {
+        // ignore
+      }
+    };
+    if (products.length > 0) fetchSupplierNames();
+  }, [products])
+
   const showNotification = (message) => {
     setNotification(message)
     setTimeout(() => setNotification(null), 3000)
@@ -194,6 +250,18 @@ const Home = ({ cart, setCart }) => {
 
   const removeFromCart = (id) => {
     setCart(prev => prev.filter(item => item.id !== id))
+  }
+
+  // Supplier footer link handler
+  const handleSupplierFooterClick = (route) => (e) => {
+    e.preventDefault();
+    if (!user || user.role !== 'SUPPLIER') {
+      // Save intended route and redirect to login
+      localStorage.setItem('postLoginRedirect', route);
+      window.location.href = '/login';
+    } else {
+      window.location.href = route;
+    }
   }
 
   return (
@@ -275,7 +343,7 @@ const Home = ({ cart, setCart }) => {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Popular Products</h2>
             <p className="text-lg text-gray-600">Browse and add to your cart instantly</p>
           </div>
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-8 gap-4">
             <div className="relative w-full max-w-md">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                 <Search className="h-5 w-5 text-gray-400" />
@@ -288,6 +356,17 @@ const Home = ({ cart, setCart }) => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <select
+              className="input max-w-xs"
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+            >
+              <option value="">Sort By</option>
+              <option value="nearness">Sort by Nearness</option>
+              <option value="delivery">Sort by Delivery Date</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+            </select>
           </div>
           {loading ? (
             <div className="flex justify-center items-center h-40">
@@ -339,22 +418,18 @@ const Home = ({ cart, setCart }) => {
                         <span className="text-3xl font-bold text-primary-600">
                           ₹{product.unitPrice || product.price}
                         </span>
-                        <div className="flex items-center">
-                          <span className="text-lg text-gray-600 ml-1">
-                            ⭐ {product.rating || 0}
-                          </span>
-                        </div>
+                        {/* Removed star icon and rating */}
                       </div>
-                      {product.supplierName && (
+                      {product.supplierId && (
                         <div className="mb-3">
                           <span className="text-sm font-medium bg-blue-50 text-blue-700 px-3 py-2 rounded-full">
-                            By {product.supplierName}
+                            By {supplierNames[product.supplierId] || product.supplierId}
                           </span>
                         </div>
                       )}
                       <div className="flex items-center justify-between text-base text-gray-500 mb-6">
                         <span>Stock: {product.stock}</span>
-                        <span>{product.unitType}</span>
+                        <span>1 {product.unitType}</span>
                       </div>
                     </div>
                   </div>
@@ -442,28 +517,28 @@ const Home = ({ cart, setCart }) => {
             <div>
               <h4 className="text-sm font-semibold mb-4">For Vendors</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>Find Suppliers</li>
-                <li>Track Prices</li>
-                <li>Place Orders</li>
-                <li>View History</li>
+                <li><Link to="/" className="hover:underline" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Browse Products</Link></li>
+                <li><Link to="/cart" className="hover:underline">View Cart</Link></li>
+                <li><Link to="/orders" className="hover:underline">Place Orders</Link></li>
+                <li><Link to="/orders" className="hover:underline">Order History</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-4">For Suppliers</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>List Products</li>
-                <li>Manage Orders</li>
-                <li>View Analytics</li>
-                <li>Grow Business</li>
+                <li><a href="/products" className="hover:underline" onClick={handleSupplierFooterClick('/products')}>List Products</a></li>
+                <li><a href="/orders" className="hover:underline" onClick={handleSupplierFooterClick('/orders')}>Manage Orders</a></li>
+                <li><a href="/analytics" className="hover:underline" onClick={handleSupplierFooterClick('/analytics')}>View Analytics</a></li>
+                <li><a href="/dashboard" className="hover:underline" onClick={handleSupplierFooterClick('/dashboard')}>Grow Business</a></li>
               </ul>
             </div>
             <div>
               <h4 className="text-sm font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>Help Center</li>
-                <li>Contact Us</li>
-                <li>Privacy Policy</li>
-                <li>Terms of Service</li>
+                <li><Link to="/help" className="hover:underline">Help Center</Link></li>
+                <li><Link to="/contact" className="hover:underline">Contact Us</Link></li>
+                <li><Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link></li>
+                <li><Link to="/terms" className="hover:underline">Terms of Service</Link></li>
               </ul>
             </div>
           </div>

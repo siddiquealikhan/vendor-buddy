@@ -12,14 +12,14 @@ import java.time.LocalDateTime;
 
 @Document(collection = "products")
 public class Product {
-    
+
     @Id
     private String id;
-    
+
     @NotBlank(message = "Product name is required")
     @TextIndexed
     private String name;
-    
+
     @NotBlank(message = "Category is required")
     private String category;
     
@@ -59,8 +59,8 @@ public class Product {
         this.rating = 0.0;
         this.reviewCount = 0;
     }
-    
-    public Product(String name, String category, Double unitPrice, String unitType, 
+
+    public Product(String name, String category, Double unitPrice, String unitType,
                    Integer stock, Integer deliveryRange, String supplierId) {
         this();
         this.name = name;
@@ -71,35 +71,35 @@ public class Product {
         this.deliveryRange = deliveryRange;
         this.supplierId = supplierId;
     }
-    
+
     // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-    
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    
+
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
-    
+
     public Double getUnitPrice() { return unitPrice; }
     public void setUnitPrice(Double unitPrice) { this.unitPrice = unitPrice; }
-    
+
     public String getUnitType() { return unitType; }
     public void setUnitType(String unitType) { this.unitType = unitType; }
-    
+
     public Integer getStock() { return stock; }
     public void setStock(Integer stock) { this.stock = stock; }
-    
+
     public Integer getDeliveryRange() { return deliveryRange; }
     public void setDeliveryRange(Integer deliveryRange) { this.deliveryRange = deliveryRange; }
-    
+
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-    
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    
+
     public Double getSupplierLat() { return supplierLat; }
     public void setSupplierLat(Double supplierLat) { this.supplierLat = supplierLat; }
 
@@ -111,7 +111,7 @@ public class Product {
 
     public String getSupplierId() { return supplierId; }
     public void setSupplierId(String supplierId) { this.supplierId = supplierId; }
-    
+
     public Double getRating() { return rating; }
     public void setRating(Double rating) { this.rating = rating; }
     
